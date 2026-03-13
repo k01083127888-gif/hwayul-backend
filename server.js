@@ -25,10 +25,7 @@ app.use(express.json({ limit: "1mb", type: "*/*" }));
 // 개발 중에는 프론트엔드(3000번 포트)와 백엔드(4000번 포트)가 다른 주소이므로
 // CORS를 허용해야 서로 통신할 수 있어요.
 app.use(cors({
-  origin: [
-    "http://localhost:3000",   // create-react-app 기본 포트
-    "http://localhost:5173",   // Vite 기본 포트
-  ],
+  origin: "https://hwayul-frontend-bwjw.vercel.app"
 }));
 
 // ── 3. API 키 확인 ────────────────────────────────────────────────
