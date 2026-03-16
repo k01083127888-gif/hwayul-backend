@@ -28,6 +28,30 @@ app.use(cors({
   origin: "https://hwayul-frontend-bwjw.vercel.app"
 }));
 
+// — 보안: 요청 횟수 제한 (Rate Limiting) ——————————————
+// 같은 사람이 너무 많이 요청하면 차단해요 (1분에 10번까지만 허용)
+const requestCounts = new Map();
+setInterval(() => requestCounts.clear(), 60000); // 1분마다 초기화
+
+app.use("/api/claude", (req, res, next) => {
+  const ip = req.headers["x-forwarded-for"] || req.ip;
+  const count = requestCounts.get(ip) || 0;
+  if (count >= 10) {
+    return res.status(429).json({ 
+      error: { message: "요청이 너무 많습니다. 1분 후 다시 시도해주세요." } 
+    });
+  }
+  requestCounts.set(ip, count + 1);
+  next();
+});
+
+// — 보안: 기본 보안 헤더 설정 ——————————————
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  next();
+});
 // ── 3. API 키 확인 ────────────────────────────────────────────────
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
 
@@ -45,6 +69,19 @@ if (!ANTHROPIC_API_KEY) {
 //    프론트엔드에서 AI 요청이 오면 이 함수가 처리합니다.
 app.post("/api/claude", async (req, res) => {
   try {
+    // — 보안: 입력값 검증 ——————————————
+    if (!req.body || !req.body.messages || !Array.isArray(req.body.messages)) {
+      return res.status(400).json({ 
+        error: { message: "잘못된 요청입니다." } 
+      });
+    }
+    // 메시지가 너무 길면 차단 (10000자 제한)
+    const lastMessage = req.body.messages[req.body.messages.length - 1];
+    if (lastMessage && lastMessage.content && lastMessage.content.length > 10000) {
+      return res.status(400).json({ 
+        error: { message: "메시지가 너무 깁니다." } 
+      });
+    }
     // (A) 프론트엔드가 보낸 데이터를 그대로 Anthropic API에 전달
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
