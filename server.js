@@ -192,7 +192,8 @@ app.get("/api/cases/search/:keyword", async (req, res) => {
 app.get("/api/contents", async (req, res) => {
     try {
         const result = await pool.query("SELECT * FROM contents ORDER BY created_at DESC");
-        res.json(result.rows);
+        const rows = result.rows.map(r => ({...r, attachments: r.attachments ? JSON.parse(r.attachments) : []}));
+        res.json(rows);
     } catch (error) {
         res.status(500).json({ error: "콘텐츠 불러오기 실패" });
     }
@@ -202,7 +203,8 @@ app.get("/api/contents/:id", async (req, res) => {
     try {
         const result = await pool.query("SELECT * FROM contents WHERE id = $1", [req.params.id]);
         if (result.rows.length === 0) return res.status(404).json({ error: "찾을 수 없습니다." });
-        res.json(result.rows[0]);
+        const row = {...result.rows[0], attachments: result.rows[0].attachments ? JSON.parse(result.rows[0].attachments) : []};
+        res.json(row);
     } catch (error) {
         res.status(500).json({ error: "불러오기 실패" });
     }
@@ -255,12 +257,13 @@ app.post("/api/contents/bulk", async (req, res) => {
         await pool.query("DELETE FROM contents");
         for (const c of contents) {
             await pool.query(
-                `INSERT INTO contents (type, tag, title, date, summary, views, hidden, body) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-                [c.type||"news", c.tag||"", c.title||"", c.date||"", c.summary||"", c.views||0, c.hidden||false, c.body||""]
+                `INSERT INTO contents (type, tag, title, date, summary, views, hidden, body, attachments) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+                [c.type||"news", c.tag||"", c.title||"", c.date||"", c.summary||"", c.views||0, c.hidden||false, c.body||"", JSON.stringify(c.attachments||[])]
             );
         }
         const result = await pool.query("SELECT * FROM contents ORDER BY created_at DESC");
-        res.json(result.rows);
+        const rows = result.rows.map(r => ({...r, attachments: r.attachments ? JSON.parse(r.attachments) : []}));
+        res.json(rows);
     } catch (error) {
         res.status(500).json({ error: "일괄 저장 실패" });
     }
