@@ -191,7 +191,7 @@ app.get("/api/cases/search/:keyword", async (req, res) => {
 
 app.get("/api/contents", async (req, res) => {
     try {
-        const result = await pool.query("SELECT * FROM contents ORDER BY created_at DESC");
+        const result = await pool.query("SELECT * FROM contents ORDER BY date DESC, id DESC");
         const rows = result.rows.map(r => ({...r, attachments: r.attachments ? JSON.parse(r.attachments) : []}));
         res.json(rows);
     } catch (error) {
@@ -261,7 +261,7 @@ app.post("/api/contents/bulk", async (req, res) => {
                 [c.type||"news", c.tag||"", c.title||"", c.date||"", c.summary||"", c.views||0, c.hidden||false, c.body||"", JSON.stringify(c.attachments||[])]
             );
         }
-        const result = await pool.query("SELECT * FROM contents ORDER BY created_at DESC");
+        const result = await pool.query("SELECT * FROM contents ORDER BY date DESC, id DESC");
         const rows = result.rows.map(r => ({...r, attachments: r.attachments ? JSON.parse(r.attachments) : []}));
         res.json(rows);
     } catch (error) {
