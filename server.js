@@ -93,10 +93,13 @@ async function initDatabase() {
                 views INTEGER DEFAULT 0,
                 hidden BOOLEAN DEFAULT false,
                 body TEXT,
+                attachments TEXT,
                 created_at TIMESTAMP DEFAULT NOW(),
                 updated_at TIMESTAMP DEFAULT NOW()
             )
         `);
+        // 기존 테이블에 attachments 컬럼 추가
+    await pool.query(`ALTER TABLE contents ADD COLUMN IF NOT EXISTS attachments TEXT`);
 
         console.log("✅ 데이터베이스 테이블 준비 완료!");
     } catch (error) {
